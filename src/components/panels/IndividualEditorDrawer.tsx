@@ -1,360 +1,232 @@
 import React from 'react';
 import { usePedigreeStore } from '../../hooks/usePedigreeStore';
 import { X, Star, StarOff, Trash2 } from 'lucide-react';
-import type {
-  Sex,
-  AffectedStatus,
-  CarrierType,
-  DeceasedStatus,
-  PregnancyStatus,
-  TwinType,
-  AdoptionStatus,
-} from '../../domain/types';
-import clsx from 'clsx';
+import type { Sex, AffectedStatus, CarrierType, DeceasedStatus, PregnancyStatus, TwinType, AdoptionStatus } from '../../domain/types';
 
 export function IndividualEditorDrawer() {
-  const {
-    pedigreeCase,
-    ui,
-    closeEditor,
-    updateIndividual,
-    removeIndividual,
-    setProband,
-  } = usePedigreeStore();
-
-  const individual = ui.selectedIndividualId
-    ? pedigreeCase.individuals[ui.selectedIndividualId]
-    : null;
+  const { pedigreeCase, ui, closeEditor, updateIndividual, removeIndividual, setProband } = usePedigreeStore();
+  const individual = ui.selectedIndividualId ? pedigreeCase.individuals[ui.selectedIndividualId] : null;
 
   if (!individual) return null;
 
-  const update = (field: string, value: unknown) =>
-    updateIndividual(individual.id, { [field]: value });
+  const update = (field: string, value: unknown) => updateIndividual(individual.id, { [field]: value });
+  const handleRemove = () => { removeIndividual(individual.id); closeEditor(); };
 
-  const handleRemove = () => {
-    removeIndividual(individual.id);
-    closeEditor();
+  const drawerStyle: React.CSSProperties = {
+    position: 'absolute', right: 0, top: 0, bottom: 0, width: '300px',
+    background: '#fff', borderLeft: '1px solid #e4e8ed',
+    boxShadow: '-4px 0 16px rgb(0 0 0 / 0.07)',
+    zIndex: 30, display: 'flex', flexDirection: 'column',
+    transform: ui.editorOpen ? 'translateX(0)' : 'translateX(100%)',
+    transition: 'transform 0.2s ease',
   };
 
   return (
     <>
-      {/* Backdrop for smaller screens */}
-      <div
-        className={clsx(
-          'fixed inset-0 bg-black/20 z-20 transition-opacity duration-200',
-          ui.editorOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}
-        onClick={closeEditor}
-      />
+      {/* Backdrop */}
+      {ui.editorOpen && (
+        <div
+          style={{ position: 'absolute', inset: 0, zIndex: 29 }}
+          onClick={closeEditor}
+        />
+      )}
 
-      {/* Drawer */}
-      <aside
-        className={clsx(
-          'absolute right-0 top-0 bottom-0 w-80 bg-white border-l border-surface-200',
-          'shadow-modal z-30 flex flex-col transition-transform duration-200',
-          ui.editorOpen ? 'translate-x-0' : 'translate-x-full'
-        )}
-      >
+      <div style={drawerStyle}>
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3
-                        border-b border-surface-200 bg-surface-50">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-semibold text-surface-800">
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px', borderBottom: '1px solid #e4e8ed', background: '#fafbfc',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#111418', fontFamily: 'JetBrains Mono, monospace' }}>
               {individual.label || 'Individual'}
             </span>
-            {individual.isProband && (
-              <span className="badge badge-info">Proband</span>
-            )}
+            {individual.isProband && <span className="badge badge-info">Proband</span>}
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              className={clsx(
-                'btn-ghost btn btn-sm',
-                individual.isProband && 'text-clinical-600'
-              )}
+          <div style={{ display: 'flex', gap: '2px' }}>
+            <IconBtn
               onClick={() => setProband(individual.id)}
-              title={individual.isProband ? 'Remove proband flag' : 'Set as proband'}
+              title={individual.isProband ? 'Remove proband' : 'Set as proband'}
+              color={individual.isProband ? '#2563eb' : '#8b92a0'}
             >
-              {individual.isProband ? (
-                <StarOff size={14} />
-              ) : (
-                <Star size={14} />
-              )}
-            </button>
-            <button
-              className="btn-ghost btn btn-sm text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={handleRemove}
-              title="Remove individual"
-            >
+              {individual.isProband ? <StarOff size={14} /> : <Star size={14} />}
+            </IconBtn>
+            <IconBtn onClick={handleRemove} title="Remove" color="#dc2626">
               <Trash2 size={14} />
-            </button>
-            <button
-              className="btn-ghost btn btn-sm"
-              onClick={closeEditor}
-              title="Close"
-            >
+            </IconBtn>
+            <IconBtn onClick={closeEditor} title="Close">
               <X size={14} />
-            </button>
+            </IconBtn>
           </div>
         </div>
 
-        {/* Scrollable form body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-          {/* ── Identity ─────────────────────────────── */}
           <Section title="Identity">
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <Field label="First Name">
-                <input
-                  className="field-input"
-                  value={individual.firstName ?? ''}
-                  onChange={(e) => update('firstName', e.target.value || undefined)}
-                  placeholder="Optional"
-                />
+                <input className="field-input" value={individual.firstName ?? ''} placeholder="Optional"
+                  onChange={(e) => update('firstName', e.target.value || undefined)} />
               </Field>
               <Field label="Last Name">
-                <input
-                  className="field-input"
-                  value={individual.lastName ?? ''}
-                  onChange={(e) => update('lastName', e.target.value || undefined)}
-                  placeholder="Optional"
-                />
+                <input className="field-input" value={individual.lastName ?? ''} placeholder="Optional"
+                  onChange={(e) => update('lastName', e.target.value || undefined)} />
               </Field>
             </div>
-
             <Field label="Pedigree Label">
-              <input
-                className="field-input font-mono"
+              <input className="field-input" style={{ fontFamily: 'JetBrains Mono, monospace' }}
                 value={individual.label}
                 onChange={(e) => update('label', e.target.value)}
-                placeholder="e.g. II-3"
-              />
+                placeholder="e.g. II-3" />
             </Field>
           </Section>
 
-          {/* ── Demographics ─────────────────────────── */}
           <Section title="Demographics">
             <Field label="Sex">
-              <div className="flex gap-1.5">
-                {(['male', 'female', 'unknown'] as Sex[]).map((s) => (
-                  <button
-                    key={s}
-                    className={clsx(
-                      'flex-1 rounded border py-1.5 text-xs font-display capitalize transition-colors',
-                      individual.sex === s
-                        ? 'bg-clinical-700 text-white border-clinical-700'
-                        : 'bg-white text-surface-600 border-surface-300 hover:border-surface-400'
-                    )}
-                    onClick={() => update('sex', s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <SegmentControl
+                value={individual.sex}
+                options={[
+                  { value: 'male', label: 'Male' },
+                  { value: 'female', label: 'Female' },
+                  { value: 'unknown', label: '?' },
+                ]}
+                onChange={(v) => update('sex', v as Sex)}
+              />
             </Field>
-
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <Field label="Birth Year">
-                <input
-                  className="field-input"
-                  type="number"
-                  min={1900}
-                  max={2030}
+                <input className="field-input" type="number" min={1900} max={2030} placeholder="YYYY"
                   value={individual.birthYear ?? ''}
-                  onChange={(e) =>
-                    update('birthYear', e.target.value ? parseInt(e.target.value) : undefined)
-                  }
-                  placeholder="YYYY"
-                />
+                  onChange={(e) => update('birthYear', e.target.value ? parseInt(e.target.value) : undefined)} />
               </Field>
               <Field label="Death Year">
-                <input
-                  className="field-input"
-                  type="number"
-                  min={1900}
-                  max={2030}
+                <input className="field-input" type="number" min={1900} max={2030} placeholder="YYYY"
                   value={individual.deathYear ?? ''}
-                  onChange={(e) =>
-                    update('deathYear', e.target.value ? parseInt(e.target.value) : undefined)
-                  }
-                  placeholder="YYYY"
-                />
+                  onChange={(e) => update('deathYear', e.target.value ? parseInt(e.target.value) : undefined)} />
               </Field>
             </div>
           </Section>
 
-          {/* ── Clinical Status ───────────────────────── */}
           <Section title="Clinical Status">
             <Field label="Affected Status">
-              <select
-                className="field-select"
-                value={individual.affectedStatus}
-                onChange={(e) => update('affectedStatus', e.target.value as AffectedStatus)}
-              >
+              <select className="field-select" value={individual.affectedStatus}
+                onChange={(e) => update('affectedStatus', e.target.value as AffectedStatus)}>
                 <option value="unknown">Unknown</option>
                 <option value="unaffected">Unaffected</option>
                 <option value="affected">Affected</option>
                 <option value="carrier">Carrier</option>
               </select>
             </Field>
-
             {individual.affectedStatus === 'carrier' && (
               <Field label="Carrier Type">
-                <select
-                  className="field-select"
-                  value={individual.carrierType ?? ''}
-                  onChange={(e) => update('carrierType', e.target.value as CarrierType)}
-                >
+                <select className="field-select" value={individual.carrierType ?? ''}
+                  onChange={(e) => update('carrierType', e.target.value as CarrierType)}>
                   <option value="">— Select —</option>
                   <option value="autosomal_recessive">Autosomal Recessive (dot)</option>
-                  <option value="x_linked">X-linked (quadrant fill)</option>
-                  <option value="obligate">Obligate Carrier</option>
+                  <option value="x_linked">X-linked (half-fill)</option>
+                  <option value="obligate">Obligate (inferred)</option>
                   <option value="tested_positive">Tested Positive</option>
                 </select>
               </Field>
             )}
-
             <Field label="Deceased Status">
-              <select
-                className="field-select"
-                value={individual.deceasedStatus}
-                onChange={(e) => update('deceasedStatus', e.target.value as DeceasedStatus)}
-              >
+              <select className="field-select" value={individual.deceasedStatus}
+                onChange={(e) => update('deceasedStatus', e.target.value as DeceasedStatus)}>
                 <option value="unknown">Unknown</option>
                 <option value="alive">Alive</option>
                 <option value="deceased">Deceased</option>
               </select>
             </Field>
-
-            <Field label="Pregnancy / Reproductive Event">
-              <select
-                className="field-select"
-                value={individual.pregnancyStatus ?? ''}
-                onChange={(e) =>
-                  update('pregnancyStatus', e.target.value as PregnancyStatus || null)
-                }
-              >
-                <option value="">— Standard birth / Not applicable —</option>
+            <Field label="Pregnancy / Repro Event">
+              <select className="field-select" value={individual.pregnancyStatus ?? ''}
+                onChange={(e) => update('pregnancyStatus', e.target.value as PregnancyStatus || null)}>
+                <option value="">— Standard / Not applicable —</option>
                 <option value="liveborn">Liveborn</option>
                 <option value="current_pregnancy">Current Pregnancy</option>
                 <option value="miscarriage">Miscarriage (&lt;20wks)</option>
                 <option value="stillbirth">Stillbirth (≥20wks)</option>
-                <option value="terminated">Elective Termination (TOP)</option>
-                <option value="ectopic">Ectopic Pregnancy</option>
+                <option value="terminated">Termination (TOP)</option>
+                <option value="ectopic">Ectopic</option>
               </select>
             </Field>
           </Section>
 
-          {/* ── Special Designations ─────────────────── */}
-          <Section title="Special Designations">
+          <Section title="Designations">
             <Field label="Twin Type">
-              <select
-                className="field-select"
-                value={individual.twinType ?? ''}
-                onChange={(e) =>
-                  update('twinType', e.target.value as TwinType || null)
-                }
-              >
+              <select className="field-select" value={individual.twinType ?? ''}
+                onChange={(e) => update('twinType', e.target.value as TwinType || null)}>
                 <option value="">Not a twin</option>
                 <option value="monozygotic">Monozygotic (MZ / identical)</option>
                 <option value="dizygotic">Dizygotic (DZ / fraternal)</option>
               </select>
             </Field>
-
             <Field label="Adoption Status">
-              <select
-                className="field-select"
-                value={individual.adoptionStatus ?? 'not_adopted'}
-                onChange={(e) => update('adoptionStatus', e.target.value as AdoptionStatus)}
-              >
+              <select className="field-select" value={individual.adoptionStatus ?? 'not_adopted'}
+                onChange={(e) => update('adoptionStatus', e.target.value as AdoptionStatus)}>
                 <option value="not_adopted">Not adopted</option>
-                <option value="adopted_in">Adopted into family</option>
-                <option value="adopted_out">Adopted out of family</option>
+                <option value="adopted_in">Adopted in</option>
+                <option value="adopted_out">Adopted out</option>
               </select>
             </Field>
-
-            <div className="space-y-2">
-              <CheckOption
-                id="isProband"
-                label="Proband (index case)"
-                checked={individual.isProband}
-                onChange={() => setProband(individual.id)}
-              />
-              <CheckOption
-                id="isConsultand"
-                label="Consultand (seeking counseling)"
-                checked={individual.isConsultand}
-                onChange={(v) => update('isConsultand', v)}
-              />
-              <CheckOption
-                id="sexUnconfirmed"
-                label="Sex unconfirmed / uncertain"
-                checked={individual.sexUnconfirmed}
-                onChange={(v) => update('sexUnconfirmed', v)}
-              />
-            </div>
+            <CheckRow label="Consultand (seeking counseling)" checked={individual.isConsultand}
+              onChange={(v) => update('isConsultand', v)} />
+            <CheckRow label="Sex unconfirmed / uncertain" checked={individual.sexUnconfirmed}
+              onChange={(v) => update('sexUnconfirmed', v)} />
           </Section>
 
-          {/* ── Clinical Annotations ─────────────────── */}
           <Section title="Clinical Annotations">
             <Field label="Phenotype Summary">
-              <textarea
-                className="field-textarea min-h-[70px]"
+              <textarea className="field-textarea" style={{ minHeight: '70px' }}
                 value={individual.phenotypeSummary ?? ''}
                 onChange={(e) => update('phenotypeSummary', e.target.value || undefined)}
-                placeholder="Clinical features, age of onset, severity…"
-              />
+                placeholder="Clinical features, age of onset…" />
             </Field>
-
             <Field label="Molecular / Genotype Notes">
-              <textarea
-                className="field-textarea min-h-[50px] font-mono text-xs"
+              <textarea className="field-textarea" style={{ minHeight: '50px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}
                 value={individual.genotypeNotes ?? ''}
                 onChange={(e) => update('genotypeNotes', e.target.value || undefined)}
-                placeholder="e.g. BRCA1 c.5266dupC (het), de novo confirmed"
-              />
+                placeholder="e.g. BRCA1 c.5266dupC (het), de novo confirmed" />
             </Field>
-
-            <Field label="Free-text Notes">
-              <textarea
-                className="field-textarea min-h-[60px]"
+            <Field label="Notes">
+              <textarea className="field-textarea" style={{ minHeight: '55px' }}
                 value={individual.notes ?? ''}
                 onChange={(e) => update('notes', e.target.value || undefined)}
-                placeholder="Any additional clinical or administrative notes…"
-              />
+                placeholder="Additional clinical or admin notes…" />
             </Field>
           </Section>
-
         </div>
-      </aside>
+      </div>
     </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+function IconBtn({ children, onClick, title, color }: { children: React.ReactNode; onClick: () => void; title?: string; color?: string }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      width: '28px', height: '28px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: color ?? '#8b92a0', background: 'transparent', transition: 'background 0.1s',
+    }}
+      onMouseOver={(e) => (e.currentTarget.style.background = '#f5f6f8')}
+      onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      {children}
+    </button>
+  );
+}
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="section-heading">{title}</p>
-      <div className="space-y-3">{children}</div>
+      <p style={{ fontSize: '10.5px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8b92a0', margin: '0 0 10px' }}>{title}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{children}</div>
     </div>
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="field-label">{label}</label>
@@ -363,29 +235,35 @@ function Field({
   );
 }
 
-function CheckOption({
-  id,
-  label,
-  checked,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
+function SegmentControl({ value, options, onChange }: {
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <input
-        id={id}
-        type="checkbox"
-        className="rounded border-surface-300 text-clinical-600 focus:ring-clinical-500"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <label htmlFor={id} className="text-xs text-surface-600 cursor-pointer">
-        {label}
-      </label>
+    <div style={{ display: 'flex', border: '1px solid #e4e8ed', borderRadius: '8px', overflow: 'hidden' }}>
+      {options.map((opt) => (
+        <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+          flex: 1, height: '34px', border: 'none', cursor: 'pointer',
+          fontSize: '12.5px', fontWeight: '500', fontFamily: 'inherit',
+          background: value === opt.value ? '#2563eb' : '#fff',
+          color: value === opt.value ? '#fff' : '#4a5260',
+          borderRight: '1px solid #e4e8ed', transition: 'all 0.1s',
+        }} style-last={{ borderRight: 'none' }}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CheckRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const id = React.useId();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
+        style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: '#2563eb' }} />
+      <label htmlFor={id} style={{ fontSize: '12.5px', color: '#4a5260', cursor: 'pointer' }}>{label}</label>
     </div>
   );
 }

@@ -1,69 +1,93 @@
 import React, { useState } from 'react';
-import { CaseInputPanel } from '../panels/CaseInputPanel';
 import { PedigreePanel } from '../panels/PedigreePanel';
-import { SummaryPanel } from '../panels/SummaryPanel';
 import { IndividualEditorDrawer } from '../panels/IndividualEditorDrawer';
+import { ClinicalHistoryPanel } from '../panels/ClinicalHistoryPanel';
+import { ManualRefinementPanel } from '../panels/ManualRefinementPanel';
+import { SummaryPanel } from '../panels/SummaryPanel';
 import { ValidationPanel } from './ValidationPanel';
-import { ClipboardList, BookOpen, ShieldCheck } from 'lucide-react';
-import clsx from 'clsx';
+import { Wand2, SlidersHorizontal, BookOpen, ShieldCheck } from 'lucide-react';
 
-type LeftTab = 'input' | 'summary' | 'validation';
+type LeftTab = 'generate' | 'refine' | 'summary' | 'validate';
+
+const TABS: Array<{ id: LeftTab; label: string; icon: React.ReactNode }> = [
+  { id: 'generate', label: 'Generate',  icon: <Wand2 size={13} /> },
+  { id: 'refine',   label: 'Refine',    icon: <SlidersHorizontal size={13} /> },
+  { id: 'summary',  label: 'Summary',   icon: <BookOpen size={13} /> },
+  { id: 'validate', label: 'Validate',  icon: <ShieldCheck size={13} /> },
+];
 
 export function MainWorkspace() {
-  const [activeLeft, setActiveLeft] = useState<LeftTab>('input');
+  const [activeLeft, setActiveLeft] = useState<LeftTab>('generate');
 
   return (
-    <div className="flex-1 flex overflow-hidden relative">
-      {/* ── Left panel ─────────────────────────────── */}
-      <aside className="w-80 flex-shrink-0 flex flex-col border-r border-surface-200 bg-white overflow-hidden">
-        {/* Tab bar */}
-        <div className="flex border-b border-surface-200 bg-surface-50 flex-shrink-0">
-          <PanelTab active={activeLeft === 'input'} onClick={() => setActiveLeft('input')}
-            icon={<ClipboardList size={12} />} label="Case Input" />
-          <PanelTab active={activeLeft === 'summary'} onClick={() => setActiveLeft('summary')}
-            icon={<BookOpen size={12} />} label="Summary" />
-          <PanelTab active={activeLeft === 'validation'} onClick={() => setActiveLeft('validation')}
-            icon={<ShieldCheck size={12} />} label="Validate" />
-        </div>
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
-        <div className="flex-1 overflow-y-auto">
-          {activeLeft === 'input'      && <CaseInputPanel />}
-          {activeLeft === 'summary'    && <SummaryPanel />}
-          {activeLeft === 'validation' && (
-            <div className="p-3 space-y-3">
+      {/* ── Left sidebar ─────────────────────────────────────── */}
+      <aside style={{
+        width: '400px', flexShrink: 0,
+        display: 'flex', flexDirection: 'column',
+        background: '#fff',
+        borderRight: '1px solid #e4e8ed',
+        overflow: 'hidden',
+      }}>
+        {/* Tab nav */}
+        <nav style={{
+          display: 'flex', alignItems: 'flex-end',
+          padding: '0 16px',
+          borderBottom: '1px solid #e4e8ed',
+          background: '#fafbfc',
+          flexShrink: 0,
+          height: '42px',
+        }}>
+          {TABS.map((tab) => {
+            const active = activeLeft === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveLeft(tab.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '0 12px', height: '42px',
+                  fontSize: '12.5px', fontWeight: '500', fontFamily: 'inherit',
+                  color: active ? '#2563eb' : '#4a5260',
+                  background: 'transparent', border: 'none',
+                  borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
+                  cursor: 'pointer', transition: 'color 0.1s, border-color 0.1s',
+                  whiteSpace: 'nowrap',
+                  marginBottom: '-1px',
+                }}
+                onMouseOver={(e) => { if (!active) (e.currentTarget.style.color = '#111418'); }}
+                onMouseOut={(e) => { if (!active) (e.currentTarget.style.color = '#4a5260'); }}
+              >
+                <span style={{ color: active ? '#2563eb' : '#8b92a0', transition: 'color 0.1s' }}>
+                  {tab.icon}
+                </span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Panel content */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
+          {activeLeft === 'generate' && <ClinicalHistoryPanel />}
+          {activeLeft === 'refine'   && <ManualRefinementPanel />}
+          {activeLeft === 'summary'  && <SummaryPanel />}
+          {activeLeft === 'validate' && (
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <ValidationPanel />
             </div>
           )}
         </div>
       </aside>
 
-      {/* ── Centre panel: Pedigree canvas ──────────── */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-surface-50 min-w-0">
+      {/* ── Centre: Pedigree canvas ──────────────────────────── */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <PedigreePanel />
       </main>
 
-      {/* ── Right drawer: Individual editor ────────── */}
+      {/* ── Right: Individual editor drawer ─────────────────── */}
       <IndividualEditorDrawer />
     </div>
-  );
-}
-
-function PanelTab({ active, onClick, icon, label }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        'flex items-center gap-1.5 px-2.5 py-2.5 text-xs font-display font-medium',
-        'transition-colors duration-100 flex-1 justify-center',
-        active
-          ? 'text-clinical-700 border-b-2 border-clinical-600 bg-white'
-          : 'text-surface-500 hover:text-surface-700 hover:bg-surface-100 border-b-2 border-transparent'
-      )}
-    >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
-    </button>
   );
 }

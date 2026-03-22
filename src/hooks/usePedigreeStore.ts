@@ -26,7 +26,7 @@ import {
   linkPartners,
   setProband,
 } from '../domain/operations';
-import { DEFAULT_SAMPLE_CASE } from '../data/sampleCases';
+import { createEmptyCase } from '../domain/factories';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ const defaultUI: AppUIState = {
 };
 
 export const usePedigreeStore = create<PedigreeStore>((set, get) => ({
-  pedigreeCase: DEFAULT_SAMPLE_CASE,
+  pedigreeCase: createEmptyCase(),
   ui: defaultUI,
 
   // ── Case-level ────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ export const usePedigreeStore = create<PedigreeStore>((set, get) => ({
   loadCase: (pedigreeCase) => set({ pedigreeCase, ui: defaultUI }),
 
   resetCase: () =>
-    set({ pedigreeCase: DEFAULT_SAMPLE_CASE, ui: defaultUI }),
+    set({ pedigreeCase: createEmptyCase(), ui: defaultUI }),
 
   updateMetadata: (updates) =>
     set((state) => ({

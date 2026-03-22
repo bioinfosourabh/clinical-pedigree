@@ -2,8 +2,7 @@ import React from 'react';
 import { usePedigreeStore } from '../../hooks/usePedigreeStore';
 import { validatePedigree } from '../../validation';
 import { getProband } from '../../domain/operations';
-import { AlertTriangle, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
-import clsx from 'clsx';
+import { AlertCircle, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import type { ValidationSeverity } from '../../domain/types';
 
 export function SummaryPanel() {
@@ -15,130 +14,118 @@ export function SummaryPanel() {
   const individuals = Object.values(pedigreeCase.individuals).filter(
     (i) => !i.id.startsWith('unknown_')
   );
-  const affectedCount = individuals.filter((i) => i.affectedStatus === 'affected').length;
-  const carrierCount = individuals.filter((i) => i.affectedStatus === 'carrier').length;
-  const deceasedCount = individuals.filter((i) => i.deceasedStatus === 'deceased').length;
-  const unionCount = Object.keys(pedigreeCase.unions).length;
+  const affectedCount  = individuals.filter((i) => i.affectedStatus === 'affected').length;
+  const carrierCount   = individuals.filter((i) => i.affectedStatus === 'carrier').length;
+  const deceasedCount  = individuals.filter((i) => i.deceasedStatus === 'deceased').length;
+  const unionCount     = Object.keys(pedigreeCase.unions).length;
 
-  const errorCount = validation.issues.filter((i: { severity: string }) => i.severity === 'error').length;
-  const warnCount = validation.issues.filter((i: { severity: string }) => i.severity === 'warning').length;
-  const infoCount = validation.issues.filter((i: { severity: string }) => i.severity === 'info').length;
+  const errorCount   = validation.issues.filter((i: { severity: string }) => i.severity === 'error').length;
+  const warnCount    = validation.issues.filter((i: { severity: string }) => i.severity === 'warning').length;
+
+  if (individuals.length === 0) {
+    return (
+      <div style={{ padding: '32px 20px', textAlign: 'center', color: '#b8bec8' }}>
+        <p style={{ fontSize: '13px', fontWeight: '500', margin: '0 0 5px' }}>No pedigree to summarise</p>
+        <p style={{ fontSize: '12px', margin: 0 }}>Generate a pedigree first</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 space-y-4">
+    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* ── Validation summary card ────────────────────────── */}
-      <div
-        className={clsx(
-          'rounded-md p-3 border',
-          errorCount > 0
-            ? 'bg-red-50 border-red-200'
+      {/* Validation status */}
+      <div style={{
+        padding: '12px 14px', borderRadius: '10px',
+        background: errorCount > 0 ? '#fff1f2' : warnCount > 0 ? '#fffbeb' : '#f0fdf4',
+        border: `1px solid ${errorCount > 0 ? '#fecdd3' : warnCount > 0 ? '#fde68a' : '#bbf7d0'}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: validation.issues.length ? '8px' : '0' }}>
+          {errorCount > 0
+            ? <AlertCircle size={14} color="#dc2626" />
             : warnCount > 0
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-emerald-50 border-emerald-200'
-        )}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          {errorCount > 0 ? (
-            <AlertCircle size={14} className="text-red-600" />
-          ) : warnCount > 0 ? (
-            <AlertTriangle size={14} className="text-amber-600" />
-          ) : (
-            <CheckCircle2 size={14} className="text-emerald-600" />
-          )}
-          <span className="text-xs font-semibold font-display">
-            {errorCount > 0
-              ? `${errorCount} Validation Error${errorCount > 1 ? 's' : ''}`
-              : warnCount > 0
-              ? `${warnCount} Warning${warnCount > 1 ? 's' : ''}`
-              : 'Pedigree Valid'}
+            ? <AlertTriangle size={14} color="#d97706" />
+            : <CheckCircle2 size={14} color="#059669" />
+          }
+          <span style={{ fontSize: '13px', fontWeight: '500', color: errorCount > 0 ? '#be123c' : warnCount > 0 ? '#92400e' : '#166534' }}>
+            {errorCount > 0 ? `${errorCount} validation error${errorCount > 1 ? 's' : ''}` : warnCount > 0 ? `${warnCount} warning${warnCount > 1 ? 's' : ''}` : 'Pedigree valid'}
           </span>
         </div>
-
         {validation.issues.length > 0 && (
-          <div className="space-y-1 mt-2">
-            {validation.issues.map((issue: import('../../domain/types').ValidationIssue, i: number) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {validation.issues.slice(0, 4).map((issue, i) => (
               <div key={i} className={`issue-row-${issue.severity}`}>
                 <IssueIcon severity={issue.severity} />
-                <span className="leading-relaxed">{issue.message}</span>
+                <span>{issue.message}</span>
               </div>
             ))}
+            {validation.issues.length > 4 && (
+              <p style={{ fontSize: '11px', color: '#8b92a0', margin: 0, paddingLeft: '2px' }}>
+                +{validation.issues.length - 4} more — see Validate tab
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Case Stats ─────────────────────────────────────── */}
-      <div className="panel">
-        <div className="panel-header">
-          <span className="panel-title">Case Statistics</span>
-        </div>
-        <div className="p-3 grid grid-cols-2 gap-2">
-          <Stat label="Total Individuals" value={individuals.length} />
-          <Stat label="Unions / Couples" value={unionCount} />
-          <Stat label="Affected" value={affectedCount} accent />
-          <Stat label="Carriers" value={carrierCount} />
-          <Stat label="Deceased" value={deceasedCount} />
-          <Stat
-            label="Inheritance"
-            value={
-              meta.inheritancePattern
-                ? formatInheritance(meta.inheritancePattern)
-                : '—'
-            }
-            small
-          />
-        </div>
+      {/* Stats grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        {[
+          { label: 'Individuals', value: individuals.length },
+          { label: 'Unions',      value: unionCount },
+          { label: 'Affected',    value: affectedCount, accent: true },
+          { label: 'Carriers',    value: carrierCount },
+          { label: 'Deceased',    value: deceasedCount },
+          { label: 'Inheritance', value: formatPattern(meta.inheritancePattern), small: true },
+        ].map((s) => (
+          <div key={s.label} style={{
+            background: '#fafbfc', border: '1px solid #e4e8ed', borderRadius: '8px', padding: '10px 12px',
+          }}>
+            <p style={{ fontSize: '10.5px', fontWeight: '500', color: '#8b92a0', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {s.label}
+            </p>
+            <p style={{ fontSize: s.small ? '13px' : '20px', fontWeight: '600', margin: 0, color: s.accent ? '#2563eb' : '#111418' }}>
+              {s.value ?? '—'}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Proband details ────────────────────────────────── */}
+      {/* Proband card */}
       {proband && (
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-title">Proband (Index Case)</span>
-            <span className="font-mono text-xs text-surface-500">{proband.label}</span>
+        <div style={{ border: '1px solid #e4e8ed', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px', background: '#fafbfc', borderBottom: '1px solid #e4e8ed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', color: '#8b92a0' }}>Proband</span>
+            <span style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: '#b8bec8' }}>{proband.label}</span>
           </div>
-          <div className="p-3 space-y-2 text-xs">
-            {proband.firstName && (
-              <Row label="Name" value={`${proband.firstName} ${proband.lastName ?? ''}`} />
-            )}
-            <Row label="Sex" value={proband.sex} />
-            {proband.birthYear && (
-              <Row label="Birth Year" value={String(proband.birthYear)} />
-            )}
-            <Row
-              label="Affected Status"
-              value={proband.affectedStatus}
-              accent={proband.affectedStatus === 'affected'}
-            />
+          <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+            {[
+              { label: 'Sex', value: proband.sex },
+              proband.birthYear ? { label: 'Birth year', value: String(proband.birthYear) } : null,
+              { label: 'Status', value: proband.affectedStatus, accent: proband.affectedStatus === 'affected' },
+            ].filter(Boolean).map((r) => r && (
+              <Row key={r.label} label={r.label} value={r.value} accent={r.accent} />
+            ))}
             {proband.phenotypeSummary && (
-              <div className="pt-1">
-                <span className="field-label">Phenotype Summary</span>
-                <p className="text-surface-700 leading-relaxed mt-0.5">
-                  {proband.phenotypeSummary}
-                </p>
+              <div>
+                <p style={{ fontSize: '10.5px', fontWeight: '500', color: '#8b92a0', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Phenotype</p>
+                <p style={{ fontSize: '12.5px', color: '#4a5260', margin: 0, lineHeight: 1.5 }}>{proband.phenotypeSummary}</p>
               </div>
             )}
             {proband.genotypeNotes && (
-              <div className="pt-1">
-                <span className="field-label">Molecular Result</span>
-                <p className="font-mono text-2xs text-surface-700 bg-surface-50
-                              rounded px-2 py-1.5 mt-0.5 break-all">
+              <div>
+                <p style={{ fontSize: '10.5px', fontWeight: '500', color: '#8b92a0', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Molecular</p>
+                <p style={{ fontSize: '11.5px', fontFamily: 'JetBrains Mono, monospace', color: '#4a5260', margin: 0, wordBreak: 'break-all', background: '#f5f6f8', padding: '6px 8px', borderRadius: '6px' }}>
                   {proband.genotypeNotes}
                 </p>
               </div>
             )}
             {proband.hpoTerms.length > 0 && (
-              <div className="pt-1">
-                <span className="field-label">HPO Terms</span>
-                <div className="flex flex-wrap gap-1 mt-1">
+              <div>
+                <p style={{ fontSize: '10.5px', fontWeight: '500', color: '#8b92a0', margin: '0 0 5px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>HPO Terms</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                   {proband.hpoTerms.map((t) => (
-                    <span
-                      key={t.id}
-                      className="badge badge-info"
-                      title={t.id}
-                    >
-                      {t.label}
-                    </span>
+                    <span key={t.id} className="badge badge-info" title={t.id}>{t.label}</span>
                   ))}
                 </div>
               </div>
@@ -147,100 +134,41 @@ export function SummaryPanel() {
         </div>
       )}
 
-      {/* ── Clinical metadata ──────────────────────────────── */}
-      <div className="panel">
-        <div className="panel-header">
-          <span className="panel-title">Clinical Record</span>
+      {/* Case metadata */}
+      <div style={{ border: '1px solid #e4e8ed', borderRadius: '10px', overflow: 'hidden' }}>
+        <div style={{ padding: '10px 14px', background: '#fafbfc', borderBottom: '1px solid #e4e8ed' }}>
+          <span style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', color: '#8b92a0' }}>Case Record</span>
         </div>
-        <div className="p-3 space-y-2 text-xs">
-          {meta.clinicalIndication && (
-            <Row label="Indication" value={meta.clinicalIndication} />
-          )}
-          {meta.suspectedDiagnosis && (
-            <Row label="Suspected Dx" value={meta.suspectedDiagnosis} accent />
-          )}
-          {meta.ethnicBackground && (
-            <Row label="Ethnic Background" value={meta.ethnicBackground} />
-          )}
-          {meta.consanguinityBackground && (
-            <Row label="Consanguinity" value={meta.consanguinityBackground} />
-          )}
-          {meta.recordedBy && (
-            <Row label="Recorded By" value={meta.recordedBy} />
-          )}
-          {meta.institution && (
-            <Row label="Institution" value={meta.institution} />
-          )}
-          <Row
-            label="Case ID"
-            value={meta.caseId.toUpperCase()}
-            mono
-          />
-          <Row
-            label="Last Updated"
-            value={new Date(meta.updatedAt).toLocaleString()}
-          />
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {[
+            meta.clinicalIndication  && { label: 'Indication', value: meta.clinicalIndication },
+            meta.suspectedDiagnosis  && { label: 'Diagnosis',  value: meta.suspectedDiagnosis, accent: true },
+            meta.ethnicBackground    && { label: 'Ethnicity',  value: meta.ethnicBackground },
+            meta.consanguinityBackground && { label: 'Consanguinity', value: meta.consanguinityBackground },
+            meta.recordedBy          && { label: 'Recorded by', value: meta.recordedBy },
+            meta.institution         && { label: 'Institution', value: meta.institution },
+            { label: 'Case ID', value: meta.caseId.toUpperCase(), mono: true },
+            { label: 'Updated', value: new Date(meta.updatedAt).toLocaleString() },
+          ].filter(Boolean).map((r) => r && (
+            <Row key={r.label} label={r.label} value={r.value} accent={r.accent} mono={r.mono} />
+          ))}
         </div>
       </div>
-
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Stat({
-  label,
-  value,
-  accent,
-  small,
-}: {
-  label: string;
-  value: string | number;
-  accent?: boolean;
-  small?: boolean;
-}) {
+function Row({ label, value, accent, mono }: { label: string; value: string; accent?: boolean; mono?: boolean }) {
   return (
-    <div className="bg-surface-50 rounded px-2.5 py-2">
-      <p className="text-2xs text-surface-400 font-display uppercase tracking-wide mb-0.5">
-        {label}
-      </p>
-      <p
-        className={clsx(
-          'font-semibold',
-          small ? 'text-xs' : 'text-base',
-          accent ? 'text-clinical-700' : 'text-surface-800'
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  accent,
-  mono,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex gap-2 leading-relaxed">
-      <span className="text-surface-400 font-display uppercase tracking-wide text-2xs w-28 flex-shrink-0 mt-0.5">
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+      <span style={{ fontSize: '11px', color: '#8b92a0', minWidth: '90px', flexShrink: 0, paddingTop: '1px', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '500' }}>
         {label}
       </span>
-      <span
-        className={clsx(
-          'flex-1 break-words',
-          accent ? 'text-clinical-700 font-medium' : 'text-surface-700',
-          mono ? 'font-mono text-2xs' : ''
-        )}
-      >
+      <span style={{
+        fontSize: mono ? '11px' : '12.5px', flex: 1, wordBreak: 'break-word',
+        fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
+        color: accent ? '#2563eb' : '#111418', fontWeight: accent ? '500' : '400',
+      }}>
         {value}
       </span>
     </div>
@@ -248,15 +176,12 @@ function Row({
 }
 
 function IssueIcon({ severity }: { severity: ValidationSeverity }) {
-  if (severity === 'error')
-    return <AlertCircle size={12} className="text-red-600 flex-shrink-0 mt-0.5" />;
-  if (severity === 'warning')
-    return <AlertTriangle size={12} className="text-amber-600 flex-shrink-0 mt-0.5" />;
-  return <Info size={12} className="text-clinical-600 flex-shrink-0 mt-0.5" />;
+  if (severity === 'error')   return <AlertCircle size={12} color="#dc2626" style={{ flexShrink: 0, marginTop: '1px' }} />;
+  if (severity === 'warning') return <AlertTriangle size={12} color="#d97706" style={{ flexShrink: 0, marginTop: '1px' }} />;
+  return <Info size={12} color="#2563eb" style={{ flexShrink: 0, marginTop: '1px' }} />;
 }
 
-function formatInheritance(pattern: string): string {
-  return pattern
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+function formatPattern(p: string | null | undefined): string {
+  if (!p) return '—';
+  return p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
